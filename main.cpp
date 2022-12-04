@@ -214,7 +214,7 @@ struct Evaluator {
             return {bestMoves[index], tableValue};
         
         EvaluatedMove evaluatedMove = findNextMoveWithoutCache(boxLine);
-        evaluations[index] = evaluatedMove.evaluation;
+        evaluations[index] = evaluatedMove.evaluation - 0.01f * evaluatedMove.evaluation;
         bestMoves[index] = evaluatedMove.move;
         return evaluatedMove;
     }
