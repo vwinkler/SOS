@@ -306,7 +306,7 @@ void printNextMoveSequence(const BoxLine<N>& boxLine, Evaluator<N>& e,
     for(size_t i = 0; i < length && !currentLine.showsFinishedGame(); ++i) {
         auto evaluatedMove = e.findNextMove(currentLine);
         currentLine = applyMove(evaluatedMove.move, currentLine);
-        std::cout << ++moveNumber << ". " << boxLineToString(currentLine)
+        std::cout << ++moveNumber << ".\t" << boxLineToString(currentLine)
             << ": " << evaluatedMove.evaluation << "\n";
     }
 }
@@ -316,6 +316,10 @@ int main() {
 
     Evaluator<N> e(otherPlayer(firstPlayer));
     BoxLine<N> boxLine;
+    std::cout << "\n"
+        << "Evaluation for the second player\n"
+        << "> 0 is winning, < 0 is losing\n"
+        << "\n";
     printEvaluation(boxLine, e);
     printNextMoveSequence(boxLine, e);
 }
