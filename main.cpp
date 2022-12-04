@@ -169,26 +169,60 @@ constexpr I pow(I base, J exp) {
     return result;
 }
 
+struct Move {
+    BoxContent letter;
+    size_t index;
+};
+
+constexpr Move terminalMove = {BoxContent::Empty, std::numeric_limits<size_t>::max()};
+constexpr bool isTerminal(const Move& move) {
+    return move.letter == BoxContent::Empty;
+}
+
+struct EvaluatedMove {
+    Move move;
+    float evaluation;
+};
+ 
+auto operator==(const EvaluatedMove& lhs, const EvaluatedMove& rhs) {
+    return lhs.evaluation == rhs.evaluation;
+}
+
+auto operator<=>(const EvaluatedMove& lhs, const EvaluatedMove& rhs) {
+    return lhs.evaluation <=> rhs.evaluation;
+}
+
+template <size_t N>
+BoxLine<N> applyMove(Move move, const BoxLine<N>& boxLine) {
+    return boxLine.writeAt(move.letter, move.index);
+}
+
 template <size_t N>
 struct Evaluator {
     Evaluator(Player player) : player(player) {
-        table.fill(std::numeric_limits<typename EvaluationTable::value_type>::quiet_NaN());
+        evaluations.fill(std::numeric_limits<typename EvaluationTable::value_type>::quiet_NaN());
     }
     
     float evaluatePosition(const BoxLine<N>& boxLine) {
-        float tableValue = table[calculateEvaluationTableIndex(boxLine)];
+        return findNextMove(boxLine).evaluation;
+    }
+    
+    EvaluatedMove findNextMove(const BoxLine<N>& boxLine) {
+        auto index = calculateEvaluationTableIndex(boxLine);
+        float tableValue = evaluations[index];
         if(!std::isnan(tableValue))
-            return tableValue;
+            return {bestMoves[index], tableValue};
         
-        float result = evaluatePositionWithoutCache(boxLine);
-        table[calculateEvaluationTableIndex(boxLine)] = result;
-        return result;
+        EvaluatedMove evaluatedMove = findNextMoveWithoutCache(boxLine);
+        evaluations[index] = evaluatedMove.evaluation;
+        bestMoves[index] = evaluatedMove.move;
+        return evaluatedMove;
     }
 
     private:
-    float evaluatePositionWithoutCache(const BoxLine<N>& boxLine) {
+    EvaluatedMove findNextMoveWithoutCache(const BoxLine<N>& boxLine) {
         if(boxLine.showsFinishedGame()) {
-            return evaluateFinishedGame(boxLine);
+            return {terminalMove, evaluateFinishedGame(boxLine)};
         } else {
             auto evaluations = evaluateAllMoves(boxLine);
             if(boxLine.determineNextPlayer() == player)
@@ -231,18 +265,14 @@ struct Evaluator {
         return result;
     }
     
-    struct Move {
-        BoxContent letter;
-        size_t index;
-    };
-    
-    std::vector<float> evaluateAllMoves(const BoxLine<N>& boxLine) {
+    std::vector<EvaluatedMove> evaluateAllMoves(const BoxLine<N>& boxLine) {
         auto moves = calculatePossibleMoves(boxLine);
-        std::vector<float> evaluations(moves.size());
-        std::ranges::transform(moves, evaluations.begin(), [&boxLine, this](const auto& move) {
-                               return evaluatePosition(applyMove(move, boxLine));
+        std::vector<EvaluatedMove> evaluatedMoves(moves.size());
+        std::ranges::transform(moves, evaluatedMoves.begin(),
+                               [&boxLine, this](const auto& move) -> EvaluatedMove {
+                               return {move, evaluatePosition(applyMove(move, boxLine))};
                                });
-        return evaluations;
+        return evaluatedMoves;
     }
     
     std::vector<Move> calculatePossibleMoves(const BoxLine<N>& boxLine) {
@@ -255,20 +285,30 @@ struct Evaluator {
         }
         return moves;
     }
-    
-    BoxLine<N> applyMove(Move move, const BoxLine<N>& boxLine) {
-        return boxLine.writeAt(move.letter, move.index);
-    }
 
     using EvaluationTable = std::array<float, pow(3u, N)>;
-    EvaluationTable table;
+    using BestMoveTable = std::array<Move, pow(3u, N)>;
+    EvaluationTable evaluations;
+    BestMoveTable bestMoves;
     Player player;
-
 };
 
 template <size_t N>
 void printEvaluation(const BoxLine<N> boxLine, Evaluator<N>& e) {
     std::cout << boxLineToString(boxLine) << ": " << e.evaluatePosition(boxLine) << "\n";
+}
+
+template <size_t N>
+void printNextMoveSequence(const BoxLine<N>& boxLine, Evaluator<N>& e,
+                           size_t length = std::numeric_limits<size_t>::max()) {
+    BoxLine<N> currentLine = boxLine;
+    size_t moveNumber = currentLine.determineMoveNumber();
+    for(size_t i = 0; i < length && !currentLine.showsFinishedGame(); ++i) {
+        auto evaluatedMove = e.findNextMove(currentLine);
+        currentLine = applyMove(evaluatedMove.move, currentLine);
+        std::cout << ++moveNumber << ". " << boxLineToString(currentLine)
+            << ": " << evaluatedMove.evaluation << "\n";
+    }
 }
 
 int main() {
@@ -277,5 +317,6 @@ int main() {
     Evaluator<N> e(otherPlayer(firstPlayer));
     BoxLine<N> boxLine;
     printEvaluation(boxLine, e);
+    printNextMoveSequence(boxLine, e);
 }
 
