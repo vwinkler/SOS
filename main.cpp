@@ -22,7 +22,7 @@ enum class Player {
     B
 };
 
-Player otherPlayer(Player player) {
+constexpr Player otherPlayer(Player player) {
     switch(player) {
         case Player::A:
             return Player::B;
