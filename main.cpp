@@ -258,6 +258,8 @@ struct Evaluator {
                 case BoxContent::O:
                     value = 2;
                     break;
+                default:
+                    throw std::runtime_error("Box line has illegal content.");
             }
             result += pow(3, index) * value;
             ++index;
