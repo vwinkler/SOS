@@ -315,7 +315,7 @@ void printNextMoveSequence(const BoxLine<N>& boxLine, Evaluator<N>& e,
 }
 
 int main() {
-    constexpr size_t N = 11;
+    constexpr size_t N = 16;
 
     std::unique_ptr<Evaluator<N>> e = std::make_unique<Evaluator<N>>(otherPlayer(firstPlayer));
     BoxLine<N> boxLine;
