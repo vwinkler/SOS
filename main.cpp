@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <limits>
+#include <memory>
 
 enum class BoxContent {
     Empty,
@@ -316,13 +317,13 @@ void printNextMoveSequence(const BoxLine<N>& boxLine, Evaluator<N>& e,
 int main() {
     constexpr size_t N = 11;
 
-    Evaluator<N> e(otherPlayer(firstPlayer));
+    std::unique_ptr<Evaluator<N>> e = std::make_unique<Evaluator<N>>(otherPlayer(firstPlayer));
     BoxLine<N> boxLine;
     std::cout << "\n"
         << "Evaluation for the second player\n"
         << "> 0 is winning, < 0 is losing\n"
         << "\n";
-    printEvaluation(boxLine, e);
-    printNextMoveSequence(boxLine, e);
+    printEvaluation(boxLine, *e);
+    printNextMoveSequence(boxLine, *e);
 }
 
